@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="パークエンジョイナー">
+<title>テーマパークエンジョイナー</title>
+<style>
+/* ===== RESET ===== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --r:14px;--r-sm:10px;
+  --shadow:0 2px 12px rgba(0,0,0,.1);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.18);
+  --tdl1:#0d2f6e;--tdl2:#1e5cb8;--tdl3:#e8f0ff;--tdl4:#b8d4ff;
+  --tds1:#062040;--tds2:#0d5298;--tds3:#e0f0ff;--tds4:#90caf9;
+  --usj1:#1a0000;--usj2:#c44000;--usj3:#fff3e0;--usj4:#ffcc80;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--border:rgba(255,255,255,.08);
+  --t1:#f0f0f0;--t2:#aeaeb2;--t3:#636366;--sep:#38383a;
+}}
+@media(prefers-color-scheme:light){:root{
+  --bg:#f0f2f5;--card:#fff;--card2:#f5f5f7;--border:rgba(0,0,0,.06);
+  --t1:#1d1d1f;--t2:#6e6e73;--t3:#aeaeb2;--sep:#e5e5ea;
+}}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--t1)}
+
+/* ===== LAYOUT ===== */
+#app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top)}
+.tab-page{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab-page.active{display:flex}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(76px + var(--safe-bottom))}
+
+/* ===== PARK HEADER ===== */
+.p-header{color:#fff;flex-shrink:0}
+.p-header.tdl{background:linear-gradient(160deg,var(--tdl1) 0%,var(--tdl2) 100%)}
+.p-header.tds{background:linear-gradient(160deg,var(--tds1) 0%,var(--tds2) 100%)}
+.p-header.usj{background:linear-gradient(160deg,var(--usj1) 0%,var(--usj2) 100%)}
+
+.h-top{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.park-icon{font-size:26px}
+.park-name{flex:1;font-size:17px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.park-sub{font-size:11px;opacity:.7;font-weight:500}
+.btn-ref{background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:transform .3s;flex-shrink:0}
+.btn-ref.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Weather & Hours Bar ── */
+.h-info{display:flex;align-items:center;gap:8px;padding:10px 16px 6px;flex-wrap:wrap}
+.h-chip{background:rgba(255,255,255,.15);border-radius:20px;
+  padding:5px 12px;font-size:12px;font-weight:600;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.h-chip.weather-chip{background:rgba(255,255,255,.2)}
+.h-chip.hours-chip{}
+.h-chip.crowd-low{background:rgba(76,255,145,.25)}
+.h-chip.crowd-mid{background:rgba(255,214,10,.25)}
+.h-chip.crowd-high{background:rgba(255,150,0,.3)}
+.h-chip.crowd-vhigh{background:rgba(255,69,58,.4)}
+/* Crowd Meter Card */
+.crowd-meter{margin:12px 16px 0;background:var(--card);border-radius:var(--r);
+  border:1px solid var(--border);padding:14px;box-shadow:var(--shadow)}
+.crowd-meter-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.crowd-meter-title{font-size:12px;font-weight:700;color:var(--t3)}
+.crowd-level-badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800}
+.crowd-bar-wrap{height:8px;background:var(--sep);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.crowd-bar{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.crowd-bar.cl{background:linear-gradient(90deg,#4cff91,#00c853)}
+.crowd-bar.cm{background:linear-gradient(90deg,#ffd60a,#ff9500)}
+.crowd-bar.ch{background:linear-gradient(90deg,#ff9500,#ff5500)}
+.crowd-bar.cv{background:linear-gradient(90deg,#ff453a,#c0392b)}
+.crowd-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:10px}
+.crowd-detail{display:flex;gap:12px;align-items:center;padding-top:10px;border-top:1px solid var(--sep);flex-wrap:wrap}
+.crowd-stat{font-size:12px;color:var(--t3)}.crowd-stat b{color:var(--t1)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#4cff91;
+  animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Stats ── */
+.h-stats{display:flex;gap:8px;padding:6px 16px 10px;overflow-x:auto;scrollbar-width:none}
+.h-stats::-webkit-scrollbar{display:none}
+.stat-chip{flex-shrink:0;background:rgba(255,255,255,.12);border-radius:16px;
+  padding:5px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+.sdot{width:7px;height:7px;border-radius:50%}
+.sdot.g{background:#4cff91}.sdot.y{background:#ffd60a}.sdot.r{background:#ff453a}
+
+/* ── Search ── */
+.h-search{padding:0 16px 12px}
+.search-inner{display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.2);border-radius:12px;padding:0 12px;
+  backdrop-filter:blur(10px)}
+.search-inner input{flex:1;background:transparent;border:none;outline:none;
+  color:#fff;font-size:15px;padding:10px 0}
+.search-inner input::placeholder{color:rgba(255,255,255,.55)}
+.s-icon{font-size:14px;opacity:.8}
+.s-clear{background:rgba(255,255,255,.25);border:none;color:#fff;
+  border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;
+  align-items:center;justify-content:center;display:none;flex-shrink:0}
+.s-clear.on{display:flex}
+
+/* ===== FILTER BAR ===== */
+.filter-bar{position:sticky;top:0;z-index:20;background:var(--card);
+  border-bottom:1px solid var(--sep)}
+.filter-scroll{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 8px;scrollbar-width:none}
+.filter-scroll::-webkit-scrollbar{display:none}
+.fchip{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  border:1.5px solid var(--sep);background:transparent;color:var(--t2);cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.fchip.on-tdl{background:var(--tdl2);border-color:var(--tdl2);color:#fff}
+.fchip.on-tds{background:var(--tds2);border-color:var(--tds2);color:#fff}
+.fchip.on-usj{background:var(--usj2);border-color:var(--usj2);color:#fff}
+
+/* ===== SHOWS SECTION ===== */
+.section{padding:14px 16px 4px}
+.sec-title{font-size:13px;font-weight:700;color:var(--t3);letter-spacing:.3px;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.shows-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 8px;scrollbar-width:none}
+.shows-scroll::-webkit-scrollbar{display:none}
+.show-card{flex-shrink:0;width:150px;background:var(--card);border-radius:var(--r);
+  border:1px solid var(--border);padding:12px;box-shadow:var(--shadow)}
+.show-name{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:6px;
+  line-height:1.3;min-height:30px}
+.show-loc{font-size:11px;color:var(--t3);margin-bottom:8px}
+.show-times{display:flex;flex-wrap:wrap;gap:4px}
+.show-time-chip{font-size:11px;font-weight:700;padding:3px 8px;
+  border-radius:8px;background:var(--card2);color:var(--t2)}
+.show-time-chip.next{background:#e8f4ff;color:#0d5298}
+@media(prefers-color-scheme:dark){.show-time-chip.next{background:#0d2040;color:#4da6ff}}
+
+/* ===== RECOMMEND ===== */
+.rec-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 6px;scrollbar-width:none}
+.rec-scroll::-webkit-scrollbar{display:none}
+.rec-card{flex-shrink:0;width:155px;background:var(--card);border-radius:var(--r);
+  border:1px solid var(--border);padding:12px;box-shadow:var(--shadow);cursor:pointer;
+  transition:transform .15s}
+.rec-card:active{transform:scale(.97)}
+.rec-rank{font-size:20px;margin-bottom:4px}
+.rec-name{font-size:13px;font-weight:700;color:var(--t1);line-height:1.3;
+  margin-bottom:6px;min-height:34px}
+.stars{font-size:11px;color:#f5a623;margin-bottom:6px}
+.rec-wait{display:inline-flex;align-items:baseline;gap:3px;
+  padding:4px 10px;border-radius:20px;font-size:14px;font-weight:800}
+.rec-tip{font-size:10px;color:var(--t3);margin-top:6px;line-height:1.4}
+
+/* ===== LIST ===== */
+.sort-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 6px}
+.sort-label{font-size:13px;color:var(--t3)}
+.sort-sel{font-size:13px;color:var(--t2);background:transparent;border:none;
+  outline:none;font-family:inherit;cursor:pointer}
+.a-list{padding:0 16px 8px}
+.a-card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);
+  margin-bottom:8px;padding:13px;display:flex;align-items:flex-start;gap:11px;
+  box-shadow:var(--shadow);cursor:pointer;transition:transform .12s;position:relative;overflow:hidden}
+.a-card:active{transform:scale(.99)}
+.a-card.closed-card{opacity:.5}
+.cat-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0;margin-top:2px}
+.ci-att{background:#e8f0ff}.ci-show{background:#fff0e8}
+.ci-rest{background:#e8fff0}.ci-shop{background:#f8e8ff}.ci-other{background:#f0f0f0}
+@media(prefers-color-scheme:dark){
+  .ci-att{background:#1a2040}.ci-show{background:#2a1800}
+  .ci-rest{background:#0a2010}.ci-shop{background:#200a30}.ci-other{background:#2a2a2a}
+}
+.a-info{flex:1;overflow:hidden}
+.a-name{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-stars{font-size:11px;color:#f5a623;margin-bottom:3px}
+.a-meta{font-size:12px;color:var(--t3);display:flex;align-items:center;
+  gap:6px;flex-wrap:wrap}
+.a-tip{font-size:11px;color:var(--t3);margin-top:5px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.status-badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+.sb-open{background:#e8fff0;color:#1a7a3c}.sb-closed{background:#fff0f0;color:#c0392b}
+.sb-down{background:#fff8e0;color:#b7770d}
+@media(prefers-color-scheme:dark){
+  .sb-open{background:#0d3320;color:#4cff91}
+  .sb-closed{background:#330d0d;color:#ff6b6b}
+  .sb-down{background:#2a2000;color:#ffd60a}
+}
+.wait-box{flex-shrink:0;min-width:58px;text-align:center;padding:8px;border-radius:12px}
+.wait-n{font-size:22px;font-weight:800;line-height:1}
+.wait-u{font-size:10px;font-weight:600;opacity:.8}
+.w-low{background:#e8fff0;color:#1a7a3c}
+.w-mid{background:#fff8e0;color:#b7770d}
+.w-hi{background:#fff0e0;color:#c45b00}
+.w-vhi{background:#fff0f0;color:#c0392b}
+.w-none{background:var(--sep);color:var(--t3)}
+@media(prefers-color-scheme:dark){
+  .w-low{background:#0d3320;color:#4cff91}.w-mid{background:#2a2000;color:#ffd60a}
+  .w-hi{background:#2a1500;color:#ff9f0a}.w-vhi{background:#330d0d;color:#ff6b6b}
+  .w-none{background:#2a2a2c;color:#636366}
+}
+.best-flag{position:absolute;top:0;left:0;
+  background:linear-gradient(135deg,#ffd700,#ff8c00);color:#fff;
+  font-size:10px;font-weight:800;padding:3px 10px 3px 8px;
+  border-bottom-right-radius:10px;letter-spacing:.3px}
+.area-tag{font-size:10px;padding:1px 6px;border-radius:5px;
+  background:var(--card2);color:var(--t3);font-weight:600}
+
+/* ===== LOADING / EMPTY ===== */
+.loading-box,.empty-box{padding:48px 24px;text-align:center;color:var(--t3)}
+.spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--sep);
+  animation:spin .8s linear infinite;margin:0 auto 16px}
+.sp-tdl{border-top-color:var(--tdl2)}.sp-tds{border-top-color:var(--tds2)}.sp-usj{border-top-color:var(--usj2)}
+.load-text{font-size:15px;color:var(--t2);font-weight:500}
+.no-res{padding:32px 16px;text-align:center;color:var(--t3);font-size:15px}
+
+/* ===== DATA SOURCE ===== */
+.data-src{text-align:center;padding:8px 16px;font-size:11px;color:var(--t3);
+  display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.demo-badge{background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:6px;font-weight:700}
+
+/* ===== BOTTOM NAV ===== */
+.b-nav{position:fixed;bottom:0;left:0;right:0;padding-bottom:var(--safe-bottom);
+  background:var(--card);border-top:1px solid var(--sep);
+  display:flex;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 4px 6px;cursor:pointer;border:none;background:transparent;transition:opacity .15s}
+.nav-btn:active{opacity:.6}
+.nav-em{font-size:22px;line-height:1;margin-bottom:3px}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--t3)}
+.nav-btn.on-tdl .nav-lbl,.nav-btn.on-tdl .nav-em{filter:none}
+.nav-btn.on-tdl .nav-lbl{color:var(--tdl2)}
+.nav-btn.on-tds .nav-lbl{color:var(--tds2)}
+.nav-btn.on-usj .nav-lbl{color:var(--usj2)}
+
+/* ===== MODAL ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:none;align-items:flex-end;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;
+  width:100%;padding:0 0 calc(20px + var(--safe-bottom));
+  animation:slideUp .28s cubic-bezier(.16,1,.3,1);max-height:85vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.m-handle{width:36px;height:4px;background:var(--sep);border-radius:2px;margin:12px auto 0}
+.m-head{padding:16px 20px 14px;border-bottom:1px solid var(--sep);position:relative}
+.m-title{font-size:20px;font-weight:800;margin-bottom:4px}
+.m-sub{font-size:13px;color:var(--t3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.m-close{position:absolute;top:14px;right:16px;background:var(--sep);border:none;
+  color:var(--t2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
+.m-body{padding:16px 20px}
+.m-stat{display:flex;justify-content:space-between;align-items:flex-start;
+  padding:12px 0;border-bottom:1px solid var(--sep)}
+.m-stat:last-child{border:none}
+.m-stat-l{font-size:14px;color:var(--t2)}
+.m-stat-r{font-size:15px;font-weight:700;color:var(--t1);text-align:right;max-width:65%}
+.m-highlight{background:var(--card2);border-radius:12px;padding:14px;margin-top:12px}
+.m-highlight-title{font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px}
+.m-highlight-text{font-size:14px;color:var(--t2);line-height:1.6}
+.strategy-box{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1));
+  border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px;margin-top:12px}
+.strategy-title{font-size:12px;font-weight:700;color:#6366f1;margin-bottom:6px}
+.strategy-text{font-size:13px;color:var(--t2);line-height:1.6}
+
+/* ===== RESPONSIVE iPad ===== */
+@media(min-width:768px){
+  .rec-scroll{display:grid;grid-template-columns:repeat(4,1fr);overflow-x:visible;padding:0 16px}
+  .rec-card{width:auto}
+  .a-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .a-list .a-card{margin-bottom:0}
+  .shows-scroll{display:grid;grid-template-columns:repeat(3,1fr);overflow-x:visible;padding:0 16px}
+  .show-card{width:auto}
+}
+@media(min-width:1024px){
+  .a-list{grid-template-columns:repeat(3,1fr)}
+  .shows-scroll{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<!-- TDL -->
+<div class="tab-page active" id="page-tdl">
+  <div class="p-header tdl" id="hdr-tdl">
+    <div class="h-top">
+      <span class="park-icon">🏰</span>
+      <div style="flex:1"><div class="park-name">東京ディズニーランド</div><div class="park-sub">Tokyo Disneyland · 千葉県浦安市</div></div>
+      <button class="btn-ref" id="ref-tdl" onclick="doRefresh('tdl')">⟳</button>
+    </div>
+    <div class="h-info">
+      <div class="h-chip weather-chip" id="wx-tdl">🌡 --°C</div>
+      <div class="h-chip" id="hours-tdl">🕘 営業時間取得中…</div>
+      <div class="h-chip" id="crowd-tdl">👥 --</div>
+    </div>
+    <div class="h-stats" id="stats-tdl"></div>
+    <div class="h-search">
+      <div class="search-inner">
+        <span class="s-icon">🔍</span>
+        <input id="sq-tdl" type="text" placeholder="施設名・エリアで検索…" oninput="onSearch('tdl')" autocomplete="off" spellcheck="false">
+        <button class="s-clear" id="sc-tdl" onclick="clearSearch('tdl')">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="filter-bar"><div class="filter-scroll" id="fil-tdl"></div></div>
+  <div class="scroll" id="scr-tdl">
+    <div id="cnt-tdl"><div class="loading-box"><div class="spinner sp-tdl"></div><div class="load-text">リアルタイムデータを取得中…</div></div></div>
+    <div class="data-src" id="src-tdl"></div>
+  </div>
+</div>
+<!-- TDS -->
+<div class="tab-page" id="page-tds">
+  <div class="p-header tds" id="hdr-tds">
+    <div class="h-top">
+      <span class="park-icon">🌊</span>
+      <div style="flex:1"><div class="park-name">東京ディズニーシー</div><div class="park-sub">Tokyo DisneySea · 千葉県浦安市</div></div>
+      <button class="btn-ref" id="ref-tds" onclick="doRefresh('tds')">⟳</button>
+    </div>
+    <div class="h-info">
+      <div class="h-chip weather-chip" id="wx-tds">🌡 --°C</div>
+      <div class="h-chip" id="hours-tds">🕘 営業時間取得中…</div>
+      <div class="h-chip" id="crowd-tds">👥 --</div>
+    </div>
+    <div class="h-stats" id="stats-tds"></div>
+    <div class="h-search">
+      <div class="search-inner">
+        <span class="s-icon">🔍</span>
+        <input id="sq-tds" type="text" placeholder="施設名・エリアで検索…" oninput="onSearch('tds')" autocomplete="off" spellcheck="false">
+        <button class="s-clear" id="sc-tds" onclick="clearSearch('tds')">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="filter-bar"><div class="filter-scroll" id="fil-tds"></div></div>
+  <div class="scroll" id="scr-tds">
+    <div id="cnt-tds"><div class="loading-box"><div class="spinner sp-tds"></div><div class="load-text">リアルタイムデータを取得中…</div></div></div>
+    <div class="data-src" id="src-tds"></div>
+  </div>
+</div>
+<!-- USJ -->
+<div class="tab-page" id="page-usj">
+  <div class="p-header usj" id="hdr-usj">
+    <div class="h-top">
+      <span class="park-icon">🎬</span>
+      <div style="flex:1"><div class="park-name">ユニバーサル・スタジオ・ジャパン</div><div class="park-sub">Universal Studios Japan · 大阪府大阪市</div></div>
+      <button class="btn-ref" id="ref-usj" onclick="doRefresh('usj')">⟳</button>
+    </div>
+    <div class="h-info">
+      <div class="h-chip weather-chip" id="wx-usj">🌡 --°C</div>
+      <div class="h-chip" id="hours-usj">🕘 営業時間取得中…</div>
+      <div class="h-chip" id="crowd-usj">👥 --</div>
+    </div>
+    <div class="h-stats" id="stats-usj"></div>
+    <div class="h-search">
+      <div class="search-inner">
+        <span class="s-icon">🔍</span>
+        <input id="sq-usj" type="text" placeholder="施設名・エリアで検索…" oninput="onSearch('usj')" autocomplete="off" spellcheck="false">
+        <button class="s-clear" id="sc-usj" onclick="clearSearch('usj')">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="filter-bar"><div class="filter-scroll" id="fil-usj"></div></div>
+  <div class="scroll" id="scr-usj">
+    <div id="cnt-usj"><div class="loading-box"><div class="spinner sp-usj"></div><div class="load-text">リアルタイムデータを取得中…</div></div></div>
+    <div class="data-src" id="src-usj"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="b-nav">
+  <button class="nav-btn on-tdl" id="nav-tdl" onclick="switchTab('tdl')"><span class="nav-em">🏰</span><span class="nav-lbl">TDL</span></button>
+  <button class="nav-btn" id="nav-tds" onclick="switchTab('tds')"><span class="nav-em">🌊</span><span class="nav-lbl">TDS</span></button>
+  <button class="nav-btn" id="nav-usj" onclick="switchTab('usj')"><span class="nav-em">🎬</span><span class="nav-lbl">USJ</span></button>
+</nav>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" onclick="closeMBg(event)">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-head">
+      <div class="m-title" id="m-title"></div>
+      <div class="m-sub" id="m-sub"></div>
+      <button class="m-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="m-body" id="m-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATIC KNOWLEDGE BASE
+// ═══════════════════════════════════════════
+const DB = {
+  tdl: {
+    attractions: {
+      'スペース・マウンテン':         {stars:3, area:'トゥモローランド', tip:'夜の方が幻想的。暗闇の中を激走する宇宙旅行。ファストパス早期取得推奨！'},
+      'ビッグサンダー・マウンテン':   {stars:3, area:'ウエスタンランド', tip:'朝イチか夕方が狙い目。3つの山を超える爽快コースター。子連れファミリーにも◎'},
+      'ホーンテッドマンション':       {stars:3, area:'ファンタジーランド', tip:'999体の幽霊が住む屋敷。細部まで作り込まれた世界観は必見。隠れミッキーを探して！'},
+      'プーさんのハニーハント':       {stars:3, area:'ファンタジーランド', tip:'世界初のランダム走行システム。毎回異なるルートを進む！TDL最人気アトラクション'},
+      'モンスターズ・インク':         {stars:3, area:'トゥモローランド', tip:'ライドに乗りながらモンスターを探す体験型。隠れキャラ探しが楽しい！'},
+      'イッツ・ア・スモールワールド': {stars:2, area:'ファンタジーランド', tip:'待ち時間短めで穴場。世界中の子どもたちの人形と音楽が癒される名作'},
+      'バズ・ライトイヤー':           {stars:2, area:'トゥモローランド', tip:'スコアを競えるシューティング系。リピーターも多く夢中になれる！'},
+      'スター・ツアーズ':             {stars:2, area:'トゥモローランド', tip:'スターウォーズの世界を3D映像で体験。乗るたびにルートが変わる'},
+      'カリブの海賊':                 {stars:3, area:'アドベンチャーランド', tip:'世界最大級の本格海賊アトラクション。涼しく休憩にもなる穴場'},
+      'ジャングル・クルーズ':         {stars:2, area:'アドベンチャーランド', tip:'船長のユーモアたっぷりトーク必見。夜は雰囲気が格段にUP！'},
+      'ウエスタンリバー鉄道':         {stars:2, area:'ウエスタンランド', tip:'蒸気機関車に乗ってパーク内を一周。のんびりできる穴場ライド'},
+      'ダンボ':                       {stars:2, area:'ファンタジーランド', tip:'小さな子ども向け定番。フォトスポットとしても人気'},
+    },
+    shows: [
+      {name:'ミッキーのマジカルミュージックワールド', loc:'ウエスタンランド劇場', times:['11:00','13:30','15:30','17:30'], icon:'🎭'},
+      {name:'エレクトリカルパレード・ドリームライツ', loc:'パーク内巡行', times:['19:00','21:00'], icon:'🎉'},
+      {name:'ワンス・アポン・ア・タイム', loc:'シンデレラ城前', times:['20:00'], icon:'✨'},
+      {name:'グリーティング（ミッキー）', loc:'ミッキーのハウス', times:['随時'], icon:'👋'},
+    ],
+    tips: ['🌅 開園30分前に到着→プーさん・スペマンを最初に', '🌙 夜のパレードは1時間前にスポット確保', '🍽 昼食は11:30前か14:00以降で混雑回避', '📱 公式アプリでスタンバイパス確認を忘れずに'],
+  },
+  tds: {
+    attractions: {
+      'ソアリン：ファンタスティック・フライト': {stars:3, area:'ファンタジースプリングス', tip:'TDS最人気！大型スクリーンで本物の飛行体験。風・香り・映像が完全融合。必ず朝イチで！'},
+      'センター・オブ・ジ・アース':           {stars:3, area:'ミステリアスアイランド', tip:'地底旅行の末に超高速で飛び出す！大迫力のコースター。ラストの叫び声必至'},
+      'タワー・オブ・テラー':                 {stars:3, area:'アメリカンウォーターフロント', tip:'呪いのホテルからの自由落下。何度落ちるかランダムで毎回違うスリル！'},
+      'インディ・ジョーンズ™':               {stars:3, area:'ロストリバーデルタ', tip:'本格的なアドベンチャー体験。ジープで危険地帯を突き進む迫力映像'},
+      'ニモ＆フレンズ・シーライダー':         {stars:2, area:'ニモ＆フレンズ・シーライダー', tip:'潜水艦に乗って海の世界へ。ファミリー向けで待ち時間少なめの穴場'},
+      'シンドバッド・ストーリーブック・ヴォヤッジ': {stars:2, area:'アラビアンコースト', tip:'癒やし系のボートライド。混雑しにくい穴場。音楽が優しくて心地よい'},
+      'アクアトピア':                         {stars:2, area:'ポートディスカバリー', tip:'ランダムに動く水上ライド。夏は最高に気持ちいい！待ち時間少なめ'},
+      'フライング・カーペット':               {stars:1, area:'アラビアンコースト', tip:'上下に動く乗り物。子ども連れに◎ 景色を楽しみながらのんびりと'},
+      'マジックランプシアター':               {stars:2, area:'アラビアンコースト', tip:'ジーニーの3Dマジックショー。座って楽しめるので休憩にもなる！'},
+      'ビッグバンドビート':                   {stars:3, area:'アメリカンウォーターフロント', tip:'ジャズ×ビッグバンドの本格ショー。事前抽選必須！当選したら最高の体験'},
+      '海底2万マイル':                         {stars:2, area:'ミステリアスアイランド', tip:'深海の神秘を体験する潜水艦ライド。ジュール・ヴェルヌの世界観が美しい'},
+      'マイロのホームカミング':               {stars:3, area:'ファンタジースプリングス', tip:'最新エリアの目玉！宇宙を旅するスペクタクル体験。フォトスポットも充実'},
+    },
+    shows: [
+      {name:'ビッグバンドビート', loc:'SS コロンビア号デッキ', times:['12:00','14:00','16:00','17:30'], icon:'🎷'},
+      {name:'ブラヴィッシーモ！', loc:'メディテレーニアンハーバー', times:['19:30','21:00'], icon:'🎆'},
+      {name:'レジェンド・オブ・ミシカ', loc:'メディテレーニアンハーバー', times:['18:30'], icon:'✨'},
+      {name:'ファッショナブル・イースター（季節）', loc:'各所', times:['11:00','14:00'], icon:'🐰'},
+    ],
+    tips: ['🌅 ソアリンは開園直後が唯一のチャンス', '🎷 ビッグバンドビートは事前抽選制', '🍝 ヴォルケイニアのパスタはパーク屈指の美味しさ', '🌙 夜のメディテレーニアンハーバーは最高のフォトスポット'],
+  },
+  usj: {
+    attractions: {
+      'マリオカート～クッパの挑戦状～':       {stars:3, area:'スーパー・ニンテンドー・ワールド', tip:'AR×リアルが融合した革命的ライド。ハンドルを回してアイテム攻撃！入場整理券必要'},
+      'ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー': {stars:3, area:'ウィザーディング・ワールド', tip:'ホグワーツ城の中を飛び回る4K超高解像度体験。魔法世界に完全没入！'},
+      'ハリウッド・ドリーム・ザ・ライド':     {stars:3, area:'ハリウッドエリア', tip:'音楽を選んで乗れるコースター！逆走版「バックドロップ」も要チェック'},
+      'ザ・フライング・ダイナソー':           {stars:3, area:'ジュラシック・パーク', tip:'恐竜に掴まれ空を舞う体験型コースター。日本最大級のフライングコースター'},
+      'ミニオン・ハチャメチャ・ライド':       {stars:3, area:'ミニオン・パーク', tip:'ミニオンたちが大暴れするロングセラー人気ライド。4Dで大笑い確定！'},
+      'スペース・ファンタジー・ザ・ライド':   {stars:3, area:'ユニバーサル・ワンダーランド', tip:'宇宙×キラキラの幻想的ライド。カップルに大人気！夜はより美しい'},
+      'ジュラシック・パーク・ザ・ライド':     {stars:3, area:'ジュラシック・パーク', tip:'ラストの激流落下でずぶ濡れ確定。夏は逆に最高！ポンチョ準備を'},
+      'アメージング・アドベンチャー・オブ・スパイダーマン': {stars:3, area:'マーベル・エリア', tip:'3D映像×実物セットの融合。酔いにくく幅広い年代が楽しめる傑作'},
+      'フライト・オブ・ザ・ヒッポグリフ™':   {stars:2, area:'ウィザーディング・ワールド', tip:'ホグワーツ城を見ながらの爽快ライド。待ち時間比較的少なめの穴場'},
+      'セサミストリート4-D':               {stars:2, area:'セサミストリート', tip:'楽しい4Dムービー体験。子ども向けだが大人も楽しい！休憩にも◎'},
+    },
+    shows: [
+      {name:'ウォーター・ワールド', loc:'ウォーター・ワールド屋外ステージ', times:['11:00','13:00','15:00','17:00'], icon:'💦'},
+      {name:'シング・オン・ツアー', loc:'ハリウッドシアター', times:['12:30','14:30','16:30'], icon:'🎤'},
+      {name:'ミニオン・アンバランシング・アクト（季節）', loc:'ミニオンパーク前', times:['10:30','13:30'], icon:'🎭'},
+      {name:'マリオ帽子ハント（体験イベント）', loc:'ニンテンドーワールド', times:['随時'], icon:'🎮'},
+    ],
+    tips: ['🎮 ニンテンドーワールドは入場整理券を朝一で取得', '🧙 ホグワーツ城内のインタラクティブ体験を忘れずに', '🍺 バタービールはハリポタエリアで必飲！', '💦 ジュラシックライドはポンチョ必携'],
+  },
+};
+
+// ─── 英語施設名 → 日本語正式名称 変換テーブル ───
+const NAME_JP = {
+  // TDL アトラクション
+  'Space Mountain':'スペース・マウンテン',
+  'Big Thunder Mountain':'ビッグサンダー・マウンテン',
+  'Haunted Mansion':'ホーンテッドマンション',
+  "Pooh's Hunny Hunt":'プーさんのハニーハント',
+  'Monsters, Inc. Ride & Go Seek!':'モンスターズ・インク',
+  "it's a small world":'イッツ・ア・スモールワールド',
+  "Buzz Lightyear's Astro Blasters":'バズ・ライトイヤー',
+  'Star Tours: The Adventures Continue':'スター・ツアーズ',
+  'Pirates of the Caribbean':'カリブの海賊',
+  'Jungle Cruise':'ジャングル・クルーズ',
+  'Western River Railroad':'ウエスタンリバー鉄道',
+  'Dumbo the Flying Elephant':'ダンボ',
+  'Castle Carrousel':'キャッスル・カルーセル',
+  'Cinderella\'s Fairy Tale Hall':'シンデレラのフェアリーテイル・ホール',
+  'Mickey\'s PhilharMagic':'ミッキーのフィルハーマジック',
+  'Chip \'n Dale\'s Treehouse':'チップとデールのツリーハウス',
+  'Country Bear Theater':'カントリーベア・シアター',
+  'Donald\'s Boat':'ドナルドのボート',
+  'Tom Sawyer Island Rafts':'トム・ソーヤー島いかだ',
+  'Mark Twain Riverboat':'マーク・トウェイン号',
+  'Pinocchio\'s Daring Journey':'ピノキオの冒険旅行',
+  'Snow White\'s Adventures':'白雪姫と七人のこびと',
+  'Peter Pan\'s Flight':'ピーターパン空の旅',
+  'Goofy\'s Paint \'n\' Play House':'グーフィーのペイント＆プレイハウス',
+  // TDL ショー・グリーティング
+  "Mickey's Magical Music World":'ミッキーのマジカルミュージックワールド',
+  'Tokyo Disneyland Electrical Parade Dreamlights':'エレクトリカルパレード・ドリームライツ',
+  'Once Upon a Time':'ワンス・アポン・ア・タイム',
+  // TDS アトラクション
+  'Soaring: Fantastic Flight':'ソアリン：ファンタスティック・フライト',
+  'Soarin\' Around the World':'ソアリン：ファンタスティック・フライト',
+  'Journey to the Center of the Earth':'センター・オブ・ジ・アース',
+  'Tower of Terror':'タワー・オブ・テラー',
+  'Indiana Jones Adventure: Temple of the Crystal Skull':'インディ・ジョーンズ™',
+  'Nemo & Friends SeaRider':'ニモ＆フレンズ・シーライダー',
+  "Sindbad's Storybook Voyage":'シンドバッド・ストーリーブック・ヴォヤッジ',
+  'Aquatopia':'アクアトピア',
+  'Magic Lamp Theater':'マジックランプシアター',
+  '20,000 Leagues Under the Sea':'海底2万マイル',
+  "Milo's Homecoming":'マイロのホームカミング',
+  'Big Band Beat':'ビッグバンドビート',
+  'Blaze':'ブラヴィッシーモ！',
+  'Raging Spirits':'レイジングスピリッツ',
+  'Caravan Carousel':'キャラバンカルーセル',
+  'DisneySea Electric Railway':'ディズニーシー・エレクトリックレールウェイ',
+  'DisneySea Transit Steamer Line':'ディズニーシー・トランジットスチーマーライン',
+  'Fortress Explorations':'フォートレス・エクスプロレーション',
+  // USJ アトラクション
+  "Mario Kart: Koopa's Challenge":'マリオカート～クッパの挑戦状～',
+  "Mario Kart™: Koopa's Challenge™":'マリオカート～クッパの挑戦状～',
+  'Harry Potter and the Forbidden Journey':'ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー',
+  'Hollywood Dream - The Ride':'ハリウッド・ドリーム・ザ・ライド',
+  'Hollywood Dream The Ride':'ハリウッド・ドリーム・ザ・ライド',
+  'The Flying Dinosaur':'ザ・フライング・ダイナソー',
+  'Minion Mayhem':'ミニオン・ハチャメチャ・ライド',
+  'Space Fantasy - The Ride':'スペース・ファンタジー・ザ・ライド',
+  'Jurassic Park - The Ride':'ジュラシック・パーク・ザ・ライド',
+  'The Amazing Adventures of Spider-Man - The Ride 4K3D':'アメージング・アドベンチャー・オブ・スパイダーマン',
+  'The Amazing Adventures of Spider-Man - The Ride':'アメージング・アドベンチャー・オブ・スパイダーマン',
+  'Flight of the Hippogriff':'フライト・オブ・ザ・ヒッポグリフ™',
+  'Sesame Street 4-D Movie Magic':'セサミストリート4-D',
+  'WaterWorld':'ウォーター・ワールド',
+  'Despicable Me Minion Mayhem':'ミニオン・ハチャメチャ・ライド',
+  'Yoshi\'s Adventure':'ヨッシー・アドベンチャー',
+};
+function translateName(name) {
+  return NAME_JP[name] || name;
+}
+
+// Category mapping
+const CAT = {ATTRACTION:'アトラクション',SHOW:'ショー',RESTAURANT:'グルメ',SHOP:'ショップ',MEET_AND_GREET:'グリーティング'};
+const CAT_ICON = {ATTRACTION:'🎢',SHOW:'🎭',RESTAURANT:'🍽',SHOP:'🛍',MEET_AND_GREET:'👋'};
+const CAT_CLS = {ATTRACTION:'ci-att',SHOW:'ci-show',RESTAURANT:'ci-rest',SHOP:'ci-shop',MEET_AND_GREET:'ci-show'};
+
+// WMO weather codes
+const WX = {
+  0:{e:'☀️',n:'快晴'},1:{e:'🌤',n:'晴れ'},2:{e:'⛅',n:'晴れ時々曇り'},3:{e:'☁️',n:'曇り'},
+  45:{e:'🌫',n:'霧'},48:{e:'🌫',n:'濃霧'},
+  51:{e:'🌦',n:'霧雨'},53:{e:'🌦',n:'霧雨'},55:{e:'🌧',n:'霧雨'},
+  61:{e:'🌧',n:'小雨'},63:{e:'🌧',n:'雨'},65:{e:'🌧',n:'強い雨'},
+  71:{e:'🌨',n:'小雪'},73:{e:'❄️',n:'雪'},75:{e:'❄️',n:'大雪'},77:{e:'🌨',n:'みぞれ'},
+  80:{e:'🌦',n:'にわか雨'},81:{e:'🌦',n:'にわか雨'},82:{e:'⛈',n:'激しいにわか雨'},
+  95:{e:'⛈',n:'雷雨'},96:{e:'⛈',n:'雷雨'},99:{e:'⛈',n:'激しい雷雨'}
+};
+
+// API Config
+const QUEUE_TIMES = {tdl:274, tds:275, usj:284};
+const TPWIKI_IDS = {
+  tdl:'67b290d3-f29c-4f0b-b81b-55da59c83bfc',
+  tds:'832fcd51-ea19-4e77-85c7-75d5843b127c',
+  usj:'e957c6e0-f3fb-4d4c-8d39-b1d3c7cba369',
+};
+const WEATHER_COORDS = {
+  tdl:{lat:35.6329,lon:139.8804},
+  tds:{lat:35.6274,lon:139.8851},
+  usj:{lat:34.6654,lon:135.4323},
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const S = {
+  tdl:{items:null,filter:'all',sort:'wait',search:'',isDemo:false,hours:null,crowdFromData:false,crowdStats:null},
+  tds:{items:null,filter:'all',sort:'wait',search:'',isDemo:false,hours:null,crowdFromData:false,crowdStats:null},
+  usj:{items:null,filter:'all',sort:'wait',search:'',isDemo:false,hours:null,crowdFromData:false,crowdStats:null},
+};
+let activeTab = 'tdl';
+const loaded = {tdl:false,tds:false,usj:false};
+
+// ═══════════════════════════════════════════
+// TAB
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.className='nav-btn';
+    if(b.id==='nav-'+tab) b.classList.add('on-'+tab);
+  });
+  if(!loaded[tab]){loaded[tab]=true; initPark(tab);}
+}
+
+// ═══════════════════════════════════════════
+// INIT PARK
+// ═══════════════════════════════════════════
+async function initPark(tab) {
+  await Promise.all([loadWaitTimes(tab), loadWeather(tab), loadParkHours(tab)]);
+}
+
+async function doRefresh(tab) {
+  const btn = document.getElementById('ref-'+tab);
+  btn.classList.add('spin');
+  // 混雑状態リセット（リフレッシュ時に再計算）
+  S[tab].crowdFromData = false;
+  S[tab].crowdStats = null;
+  await Promise.all([loadWaitTimes(tab), loadWeather(tab), loadParkHours(tab)]);
+  btn.classList.remove('spin');
+}
+
+// ═══════════════════════════════════════════
+// WAIT TIMES
+// 優先順: ①queue-times直接 → ②corsproxy経由 → ③themeparks.wiki → ④デモ
+// ═══════════════════════════════════════════
+const PROXY = 'https://corsproxy.io/?url=';
+
+async function loadWaitTimes(tab) {
+  const qtUrl = `https://queue-times.com/parks/${QUEUE_TIMES[tab]}/queue_times.json`;
+  const tpUrl = `https://api.themeparks.wiki/v1/entity/${TPWIKI_IDS[tab]}/live`;
+
+  // ① queue-times.com 直接
+  try {
+    const json = await getJSON(qtUrl, 6000);
+    const items = flattenQueueTimes(json);
+    if(items.length > 0) {
+      setData(tab, items, false);
+      setSrc(tab, 'queue-times.com', '5分ごと更新');
+      return;
+    }
+  } catch(e){ console.info('[QT直接] '+e.message); }
+
+  // ② queue-times.com → CORSプロキシ経由
+  try {
+    const json = await getJSON(PROXY + encodeURIComponent(qtUrl), 8000);
+    const items = flattenQueueTimes(json);
+    if(items.length > 0) {
+      setData(tab, items, false);
+      setSrc(tab, 'queue-times.com', 'proxy経由');
+      return;
+    }
+  } catch(e){ console.info('[QTプロキシ] '+e.message); }
+
+  // ③ themeparks.wiki（CORS対応の公式API）
+  try {
+    const json = await getJSON(tpUrl, 8000);
+    const items = flattenTPWiki(json);
+    if(items.length > 0) {
+      setData(tab, items, false);
+      setSrc(tab, 'themeparks.wiki', 'リアルタイム');
+      return;
+    }
+  } catch(e){ console.info('[TPWiki] '+e.message); }
+
+  // ④ デモデータ
+  setData(tab, getDemoItems(tab), true);
+  setSrc(tab, null, null);
+}
+
+function setData(tab, items, isDemo) {
+  S[tab].items = items;
+  S[tab].isDemo = isDemo;
+  if(isDemo) {
+    // API未接続確定 → 混雑チップを即座に「データなし」で固定
+    const el = document.getElementById('crowd-'+tab);
+    if(el) { el.className='h-chip'; el.innerHTML='📡 データなし'; }
+  }
+  renderAll(tab);
+  // 実データが来たらリアル混雑度で上書き
+  if(!isDemo) updateCrowdFromData(tab, items);
+}
+
+async function getJSON(url, ms) {
+  const ctrl = new AbortController();
+  const id = setTimeout(()=>ctrl.abort(), ms);
+  const res = await fetch(url, {signal:ctrl.signal}).finally(()=>clearTimeout(id));
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+function fetchWithTimeout(url, ms) {
+  return getJSON(url, ms);
+}
+
+function flattenQueueTimes(json) {
+  const items = [];
+  (json.lands||[]).forEach(land=>{
+    (land.attractions||[]).forEach(a=>{
+      items.push({
+        id: String(a.id),
+        name: translateName(a.name),
+        area: translateName(land.name),
+        status: a.is_open ? 'OPERATING' : 'CLOSED',
+        waitTime: a.is_open ? (a.wait_time||0) : null,
+        entityType: 'ATTRACTION',
+        lastUpdated: a.last_updated,
+      });
+    });
+  });
+  return items;
+}
+
+function flattenTPWiki(json) {
+  return (json.liveData||[]).map(d=>({
+    id: d.id||d.entityId,
+    name: translateName(d.name||'施設名不明'),
+    area: translateName(d.area||''),
+    status: d.status,
+    waitTime: d.queue?.STANDBY?.waitTime ?? null,
+    entityType: d.entityType||'ATTRACTION',
+    lastUpdated: d.lastUpdated,
+  }));
+}
+
+// ═══════════════════════════════════════════
+// WEATHER - Open-Meteo (no auth, CORS OK)
+// ═══════════════════════════════════════════
+async function loadWeather(tab) {
+  const {lat,lon} = WEATHER_COORDS[tab];
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,precipitation&timezone=Asia%2FTokyo&forecast_days=1`;
+    const json = await getJSON(url, 8000);
+    const c = json.current;
+    const wx = WX[c.weathercode] || {e:'🌡',n:''};
+    const temp = Math.round(c.temperature_2m);
+    const wind = Math.round(c.windspeed_10m);
+    const rain = c.precipitation > 0;
+    document.getElementById('wx-'+tab).innerHTML =
+      `${wx.e} ${temp}°C <span style="opacity:.8;font-size:11px">${wx.n}${wind>20?' · 風強い':''}</span>`;
+    // Crowd estimate based on weather + day of week
+    updateCrowd(tab, temp, c.weathercode, rain);
+  } catch(e) {
+    document.getElementById('wx-'+tab).textContent = '🌡 天気取得失敗';
+  }
+}
+
+// 天気・曜日ベースの予測混雑度（データ取得前の暫定表示）
+function updateCrowd(tab, temp, code, rain) {
+  // 既に実データから計算済みなら上書きしない
+  if(S[tab].crowdFromData) return;
+  // デモ（API未接続）時は混雑チップを「データなし」で固定
+  if(S[tab].isDemo) {
+    const el = document.getElementById('crowd-'+tab);
+    el.className = 'h-chip';
+    el.innerHTML = '📡 データなし';
+    return;
+  }
+  const dow = new Date().getDay();
+  const isWeekend = dow===0||dow===6;
+  const isHoliday = false; // 祝日判定は簡略化
+  const badWeather = code>=61;
+  let level, label, emoji;
+  if(badWeather)             { level='low';   emoji='🟢'; label='空いてます（雨天）'; }
+  else if(isWeekend||isHoliday) { level='high';  emoji='🔴'; label='混雑（週末）'; }
+  else if(dow===5)           { level='high';  emoji='🟠'; label='やや混雑（金曜）'; }
+  else                       { level='mid';   emoji='🟡'; label='普通（平日）'; }
+  const cls = {low:'crowd-low',mid:'crowd-mid',high:'crowd-high',vhigh:'crowd-vhigh'}[level];
+  const el = document.getElementById('crowd-'+tab);
+  el.className = 'h-chip '+cls;
+  el.innerHTML = `${emoji} ${label}<span style="font-size:10px;opacity:.7;margin-left:4px">予測</span>`;
+}
+
+// 実データの平均待ち時間から混雑度を計算（最も正確）
+function updateCrowdFromData(tab, items) {
+  S[tab].crowdFromData = true;
+  const withWait = items.filter(i=>isOpen(i)&&waitMin(i)<999);
+  if(withWait.length===0) return;
+  const avg = Math.round(withWait.reduce((s,i)=>s+waitMin(i),0)/withWait.length);
+  const min = Math.min(...withWait.map(i=>waitMin(i)));
+  const max = Math.max(...withWait.map(i=>waitMin(i)));
+  let level, emoji, label, barW, barCls;
+  if(avg < 15)      { level='low';   emoji='🟢'; label='空いてます！';  barW=20; barCls='cl'; }
+  else if(avg < 25) { level='low';   emoji='🟢'; label='わりと空いてる'; barW=35; barCls='cl'; }
+  else if(avg < 35) { level='mid';   emoji='🟡'; label='普通の混み具合'; barW=52; barCls='cm'; }
+  else if(avg < 50) { level='high';  emoji='🟠'; label='やや混雑';      barW=70; barCls='ch'; }
+  else if(avg < 65) { level='high';  emoji='🔴'; label='混雑中';        barW=82; barCls='cv'; }
+  else              { level='vhigh'; emoji='🔴'; label='大混雑！';      barW=95; barCls='cv'; }
+  // ヘッダーチップ更新
+  const chipCls = {low:'crowd-low',mid:'crowd-mid',high:'crowd-high',vhigh:'crowd-vhigh'}[level];
+  const el = document.getElementById('crowd-'+tab);
+  el.className = 'h-chip '+chipCls;
+  el.innerHTML = `${emoji} ${label}<span style="font-size:10px;opacity:.7;margin-left:4px">実測</span>`;
+  // 混雑メーターカードを保存しておく（renderContentで使用）
+  S[tab].crowdStats = {avg, min, max, barW, barCls, label, emoji, withWait:withWait.length};
+}
+
+// ═══════════════════════════════════════════
+// PARK HOURS - themeparks.wiki schedule
+// ═══════════════════════════════════════════
+async function loadParkHours(tab) {
+  const today = new Date().toISOString().slice(0,10);
+  try {
+    const json = await getJSON(
+      `https://api.themeparks.wiki/v1/entity/${TPWIKI_IDS[tab]}/schedule`, 8000);
+    const todaySchedule = (json.schedule||[]).find(s=>{
+      const d = (s.date||s.openingTime||'').slice(0,10);
+      return d===today && s.type==='OPERATING';
+    });
+    if(todaySchedule) {
+      const open = fmtTime(todaySchedule.openingTime);
+      const close = fmtTime(todaySchedule.closingTime);
+      S[tab].hours = {open,close};
+      const diff = minsUntilClose(todaySchedule.closingTime);
+      const urgency = diff>0&&diff<60 ? ` 🔔閉園まで${diff}分` : '';
+      document.getElementById('hours-'+tab).innerHTML =
+        `🕘 ${open} ～ ${close}${urgency}`;
+    } else {
+      setDefaultHours(tab);
+    }
+  } catch(e) {
+    setDefaultHours(tab);
+  }
+}
+
+function setDefaultHours(tab) {
+  const defaults = {tdl:'9:00 ～ 21:00',tds:'9:00 ～ 21:00',usj:'9:00 ～ 22:00'};
+  document.getElementById('hours-'+tab).textContent = '🕘 '+defaults[tab]+'（参考）';
+}
+
+function fmtTime(iso) {
+  if(!iso) return '--:--';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tokyo'});
+}
+
+function minsUntilClose(iso) {
+  if(!iso) return -1;
+  return Math.floor((new Date(iso)-new Date())/60000);
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+const FILTERS = [
+  {id:'all',label:'すべて'},
+  {id:'ATTRACTION',label:'🎢 アトラクション'},
+  {id:'SHOW',label:'🎭 ショー'},
+  {id:'RESTAURANT',label:'🍽 グルメ'},
+  {id:'SHOP',label:'🛍 ショップ'},
+  {id:'MEET_AND_GREET',label:'👋 グリーティング'},
+];
+
+function renderAll(tab) {
+  renderFilters(tab);
+  renderContent(tab);
+  updateTime(tab);
+}
+
+function updateTime(tab) {}
+
+function renderFilters(tab) {
+  document.getElementById('fil-'+tab).innerHTML = FILTERS.map(f=>`
+    <button class="fchip ${f.id===S[tab].filter?'on-'+tab:''}"
+      onclick="setFilter('${tab}','${f.id}')">${f.label}</button>
+  `).join('');
+}
+
+function setFilter(tab,f){S[tab].filter=f;renderFilters(tab);renderContent(tab);}
+function setSort(tab,v){S[tab].sort=v;renderContent(tab);}
+function onSearch(tab){
+  const v=document.getElementById('sq-'+tab).value;
+  S[tab].search=v;
+  document.getElementById('sc-'+tab).classList.toggle('on',v.length>0);
+  renderContent(tab);
+}
+function clearSearch(tab){
+  document.getElementById('sq-'+tab).value='';
+  S[tab].search='';
+  document.getElementById('sc-'+tab).classList.remove('on');
+  renderContent(tab);
+}
+
+function renderContent(tab) {
+  const {items,filter,sort,search} = S[tab];
+  if(!items) return;
+
+  let list = items.map(it=>({...it, _cat:detectCat(it)}));
+
+  // Stats
+  const isDemo = S[tab].isDemo;
+  const openItems = list.filter(i=>isOpen(i));
+  const low = openItems.filter(i=>waitMin(i)<=20);
+  const high = openItems.filter(i=>waitMin(i)>45);
+  document.getElementById('stats-'+tab).innerHTML = `
+    <div class="stat-chip"><span class="sdot g"></span>${openItems.length}施設営業中</div>
+    ${!isDemo ? `<div class="stat-chip"><span class="sdot y"></span>20分以下 ${low.length}件</div>
+    <div class="stat-chip"><span class="sdot r"></span>45分超 ${high.length}件</div>` : ''}
+    <div class="stat-chip">📅 ${fmtDate()}</div>
+  `;
+
+  // Filter
+  if(filter!=='all') list = list.filter(i=>i._cat===filter);
+  // Search
+  if(search.trim()){
+    const q=search.trim().toLowerCase();
+    list=list.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.area||'').toLowerCase().includes(q));
+  }
+  // Sort
+  list.sort((a,b)=>{
+    if(sort==='wait'){
+      const ao=isOpen(a),bo=isOpen(b);
+      if(ao!==bo) return ao?-1:1;
+      return waitMin(a)-waitMin(b);
+    }
+    return (a.name||'').localeCompare(b.name||'','ja');
+  });
+
+  let html = '';
+
+  // 混雑メーター（filter=all && 検索なし）
+  if(filter==='all' && !search.trim()) {
+    html += renderCrowdMeter(tab);
+  }
+
+  // Shows section (only when filter=all and no search)
+  const dbShows = DB[tab].shows;
+  if(filter==='all' && !search.trim()) {
+    html += renderShowsSection(tab, dbShows);
+  }
+
+  // Recommend section
+  const recList = items
+    .filter(i=>detectCat(i)==='ATTRACTION'&&isOpen(i)&&waitMin(i)<999)
+    .sort((a,b)=>waitMin(a)-waitMin(b))
+    .slice(0,4);
+  if(filter==='all' && !search.trim() && recList.length>0) {
+    html += renderRecommend(tab, recList);
+  }
+
+  // Park tips (only on initial view)
+  if(filter==='all' && !search.trim()) {
+    html += renderTips(tab);
+  }
+
+  // Sort bar
+  const catLabel = filter==='all' ? '全施設' : CAT[filter]||filter;
+  html += `<div class="sort-bar">
+    <span class="sort-label">${catLabel} ${list.length}件</span>
+    <select class="sort-sel" onchange="setSort('${tab}',this.value)">
+      <option value="wait" ${sort==='wait'?'selected':''}>待ち時間順</option>
+      <option value="name" ${sort==='name'?'selected':''}>名前順</option>
+    </select>
+  </div>`;
+
+  // List
+  if(list.length===0) {
+    html += `<div class="no-res">😅「${esc(search)}」に一致する施設が見つかりません</div>`;
+  } else {
+    html += `<div class="a-list">`;
+    list.forEach((item,idx)=>{
+      html += renderAttrCard(item, tab, idx, list);
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('cnt-'+tab).innerHTML = html;
+}
+
+function renderShowsSection(tab, shows) {
+  const now = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  let html = `<div class="section"><div class="sec-title">🎭 本日のショー・イベント</div></div>
+    <div class="shows-scroll">`;
+  shows.forEach(show=>{
+    const timesHtml = show.times.map(t=>{
+      if(t==='随時') return `<span class="show-time-chip next">${t}</span>`;
+      const [hh,mm] = t.split(':').map(Number);
+      const tMins = hh*60+mm;
+      const isNext = tMins >= nowMins && tMins < nowMins+120;
+      return `<span class="show-time-chip ${isNext?'next':''}">${t}</span>`;
+    }).join('');
+    html += `<div class="show-card">
+      <div class="show-name">${show.icon} ${esc(show.name)}</div>
+      <div class="show-loc">📍 ${esc(show.loc)}</div>
+      <div class="show-times">${timesHtml}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderCrowdMeter(tab) {
+  const cs = S[tab].crowdStats;
+  const isDemo = S[tab].isDemo;
+
+  // ── API未接続時：数値一切なし、理由をわかりやすく説明 ──
+  if(isDemo) {
+    return `<div class="crowd-meter" style="border:1.5px solid rgba(255,149,0,.35)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:26px">📡</span>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--t1)">リアルタイムデータ未接続</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">待ち時間・混雑状況は表示できません</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,149,0,.08);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--t2);line-height:1.7">
+        📂 <b>ファイルを直接開いている（file://）ためAPIに接続できません</b><br>
+        解決方法：<br>
+        ① <b>instant-preview.html</b> にこのHTMLを貼り付けてプレビュー<br>
+        ② ターミナルで <code style="background:var(--sep);padding:1px 5px;border-radius:4px">python3 -m http.server</code> を実行してから開く
+      </div>
+    </div>`;
+  }
+
+  // ── 実データ取得前（ローディング中）：曜日ベース予測を表示 ──
+  if(!cs) {
+    const dow = new Date().getDay();
+    const isWeekend = dow===0||dow===6;
+    const isFri = dow===5;
+    let barW=45, barCls='cm', label='--', emoji='📊';
+    if(isWeekend)    { barW=78; barCls='cv'; label='週末のため混雑が予想されます'; emoji='🔴'; }
+    else if(isFri)   { barW=65; barCls='ch'; label='金曜日はやや混雑の傾向'; emoji='🟠'; }
+    else             { barW=40; barCls='cm'; label='平日は比較的空いています'; emoji='🟡'; }
+    return `<div class="crowd-meter">
+      <div class="crowd-meter-head">
+        <span class="crowd-meter-title">📊 本日の混雑状況</span>
+        <span style="font-size:11px;color:var(--t3)">予測値（データ取得中）</span>
+      </div>
+      <div class="crowd-bar-wrap"><div class="crowd-bar ${barCls}" style="width:${barW}%"></div></div>
+      <div class="crowd-bar-labels"><span>空いてる</span><span>普通</span><span>混雑</span><span>大混雑</span></div>
+      <div class="crowd-detail"><span class="crowd-stat">${emoji} ${label}</span></div>
+    </div>`;
+  }
+
+  // ── 実データあり：リアルタイム混雑メーター ──
+  return `<div class="crowd-meter">
+    <div class="crowd-meter-head">
+      <span class="crowd-meter-title">📊 リアルタイム混雑状況</span>
+      <span style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px"><span class="live-dot"></span>実測値</span>
+    </div>
+    <div class="crowd-bar-wrap"><div class="crowd-bar ${cs.barCls}" style="width:${cs.barW}%"></div></div>
+    <div class="crowd-bar-labels"><span>空いてる</span><span>普通</span><span>混雑</span><span>大混雑</span></div>
+    <div class="crowd-detail">
+      <span class="crowd-stat">${cs.emoji} <b>${cs.label}</b></span>
+      <span class="crowd-stat">平均 <b>${cs.avg}分</b></span>
+      <span class="crowd-stat">最短 <b>${cs.min}分</b></span>
+      <span class="crowd-stat">最長 <b>${cs.max}分</b></span>
+      <span class="crowd-stat">対象 <b>${cs.withWait}施設</b></span>
+    </div>
+  </div>`;
+}
+
+function renderRecommend(tab, recList) {
+  const ranks = ['🥇','🥈','🥉','✨'];
+  let html = `<div class="section"><div class="sec-title">⚡ 今すぐおすすめ（待ち時間最短）</div></div>
+    <div class="rec-scroll">`;
+  recList.forEach((item,i)=>{
+    const wm = waitMin(item);
+    const wc = waitCls(item);
+    const db = DB[tab].attractions[item.name] || {};
+    const stars = db.stars ? '★'.repeat(db.stars)+'☆'.repeat(3-db.stars) : '';
+    // 待ち時間が有効 かつ 実データの場合のみバッジ表示
+    const waitBadge = (!S[tab].isDemo && wm < 999)
+      ? `<div class="rec-wait ${wc}">${wm}分</div>` : '';
+    html += `<div class="rec-card" onclick="openModal('${esc(item.id)}','${tab}')">
+      <div class="rec-rank">${ranks[i]}</div>
+      <div class="rec-name">${esc(item.name)}</div>
+      ${stars?`<div class="stars">${stars}</div>`:''}
+      ${waitBadge}
+      ${db.tip?`<div class="rec-tip">${esc(db.tip.slice(0,40))}…</div>`:''}
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderTips(tab) {
+  const tips = DB[tab].tips || [];
+  if(!tips.length) return '';
+  return `<div class="section"><div class="sec-title">💡 攻略Tips</div>
+    <div style="background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;margin:0 0 8px;box-shadow:var(--shadow)">
+      ${tips.map(t=>`<div style="font-size:13px;color:var(--t2);padding:4px 0;line-height:1.5">${t}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderAttrCard(item, tab, idx, allOpen) {
+  const cat = item._cat;
+  const open = isOpen(item);
+  const wm = waitMin(item);
+  const wc = waitCls(item);
+  const db = DB[tab].attractions[item.name] || {};
+  const stars = db.stars ? '★'.repeat(db.stars)+'☆'.repeat(3-db.stars) : null;
+  const isBest = idx===0 && open && wm<999 && S[tab].filter==='all' && !S[tab].search;
+  return `<div class="a-card ${open?'':'closed-card'}" onclick="openModal('${esc(item.id)}','${tab}')">
+    ${isBest?'<div class="best-flag">🏆 今がベスト</div>':''}
+    <div class="cat-icon ${CAT_CLS[cat]||'ci-att'}">${CAT_ICON[cat]||'📍'}</div>
+    <div class="a-info">
+      <div class="a-name">${esc(item.name||'不明')}</div>
+      ${stars?`<div class="a-stars">${stars}</div>`:''}
+      <div class="a-meta">
+        <span class="status-badge ${item.status==='CLOSED'?'sb-closed':item.status==='DOWN'?'sb-down':'sb-open'}">
+          ${item.status==='CLOSED'?'休止中':item.status==='DOWN'?'一時停止':'営業中'}</span>
+        <span>${CAT[cat]||cat}</span>
+        ${item.area?`<span class="area-tag">${esc(item.area)}</span>`:''}
+      </div>
+      ${db.tip?`<div class="a-tip">💬 ${esc(db.tip)}</div>`:''}
+    </div>
+    ${(open && wm < 999 && !S[tab].isDemo) ? `<div class="wait-box ${wc}">
+      <div class="wait-n">${wm}</div>
+      <div class="wait-u">分待ち</div>
+    </div>` : ''}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════
+function openModal(id, tab) {
+  const items = S[tab].items;
+  if(!items) return;
+  const item = items.find(i=>String(i.id)===String(id));
+  if(!item) return;
+  const cat = detectCat(item);
+  const wm = waitMin(item);
+  const open = isOpen(item);
+  const db = DB[tab].attractions[item.name] || {};
+  const stars = db.stars ? '★'.repeat(db.stars)+'☆'.repeat(3-db.stars)+` (${db.stars}/3)` : '情報なし';
+  const updated = item.lastUpdated ? fmtTime(item.lastUpdated) : '—';
+  document.getElementById('m-title').textContent = item.name || '—';
+  document.getElementById('m-sub').innerHTML = `
+    <span>${CAT[cat]||cat}</span>
+    ${item.area?`<span class="area-tag">${esc(item.area)}</span>`:''}
+  `;
+  document.getElementById('m-body').innerHTML = `
+    <div class="m-stat">
+      <span class="m-stat-l">現在の状況</span>
+      <span class="m-stat-r">${item.status==='CLOSED'?'🚫 休止中':item.status==='DOWN'?'⚠️ 一時停止':'✅ 営業中'}</span>
+    </div>
+    <div class="m-stat">
+      <span class="m-stat-l">待ち時間</span>
+      <span class="m-stat-r" style="font-size:28px">${S[tab].isDemo?'未接続':!open?'—':wm>=999?'不明':wm+'分'}</span>
+    </div>
+    <div class="m-stat">
+      <span class="m-stat-l">人気度</span>
+      <span class="m-stat-r" style="color:#f5a623">${stars}</span>
+    </div>
+    <div class="m-stat">
+      <span class="m-stat-l">エリア</span>
+      <span class="m-stat-r">${esc(item.area||'—')}</span>
+    </div>
+    <div class="m-stat">
+      <span class="m-stat-l">最終更新</span>
+      <span class="m-stat-r">${updated}</span>
+    </div>
+    ${db.tip?`<div class="m-highlight">
+      <div class="m-highlight-title">💬 見どころ・攻略ポイント</div>
+      <div class="m-highlight-text">${esc(db.tip)}</div>
+    </div>`:''}
+    ${open&&wm<20?`<div class="strategy-box">
+      <div class="strategy-title">🎯 今すぐ行くべき！</div>
+      <div class="strategy-text">現在の待ち時間は${wm}分と非常に短いです。
+        このタイミングを逃さずすぐに向かいましょう！</div>
+    </div>`:''}
+    ${!open?`<div class="strategy-box" style="background:rgba(255,69,58,.05);border-color:rgba(255,69,58,.2)">
+      <div class="strategy-title" style="color:#ff453a">⏰ 再オープン待ち</div>
+      <div class="strategy-text">現在休止中です。公式アプリで再開情報を確認しながら、
+        他のアトラクションを楽しんでおきましょう。</div>
+    </div>`:''}
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+function closeMBg(e){if(e.target===document.getElementById('modal'))closeModal();}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function detectCat(item) {
+  const t = (item.entityType||item.type||'').toUpperCase();
+  if(t==='ATTRACTION'||t==='RIDE') return 'ATTRACTION';
+  if(t==='SHOW'||t==='ENTERTAINMENT') return 'SHOW';
+  if(t==='RESTAURANT'||t==='DINING'||t==='FOOD') return 'RESTAURANT';
+  if(t==='SHOP'||t==='MERCHANDISE') return 'SHOP';
+  if(t==='MEET_AND_GREET') return 'MEET_AND_GREET';
+  const n=(item.name||'').toLowerCase();
+  if(n.includes('レストラン')||n.includes('カフェ')||n.includes('ダイニング')||n.includes('ビュッフェ')) return 'RESTAURANT';
+  if(n.includes('ショップ')||n.includes('ストア')||n.includes('マーケット')) return 'SHOP';
+  if(n.includes('ショー')||n.includes('パレード')||n.includes('ライブ')) return 'SHOW';
+  return 'ATTRACTION';
+}
+function isOpen(item){const s=(item.status||'').toUpperCase();return s==='OPERATING'||s==='OPEN';}
+function waitMin(item){const w=item.waitTime??item.wait??item.queue?.STANDBY?.waitTime??null;return(w===null||w===undefined||w<0)?999:w;}
+function waitCls(item){
+  if(!isOpen(item)) return 'w-none';
+  const w=waitMin(item);
+  if(w>=999) return 'w-none';
+  if(w<=15) return 'w-low';
+  if(w<=30) return 'w-mid';
+  if(w<=60) return 'w-hi';
+  return 'w-vhi';
+}
+function fmtDate(){
+  return new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',weekday:'short'});
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function setSrc(tab, source, detail) {
+  const el = document.getElementById('src-'+tab);
+  const now = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  if(S[tab].isDemo) {
+    el.innerHTML = `<span class="demo-badge">⚠️ オフライン</span> 待ち時間データを取得できません（API未接続）· ${now}`;
+  } else {
+    el.innerHTML = `<span class="live-dot"></span> <b>${source}</b>（${detail}）· ${now}取得`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════════
+function getDemoItems(tab) {
+  const map = {
+    tdl:[
+      {id:'t1',name:'スペース・マウンテン',entityType:'ATTRACTION',status:'OPERATING',waitTime:35,area:'トゥモローランド'},
+      {id:'t2',name:'ビッグサンダー・マウンテン',entityType:'ATTRACTION',status:'OPERATING',waitTime:50,area:'ウエスタンランド'},
+      {id:'t3',name:'ホーンテッドマンション',entityType:'ATTRACTION',status:'OPERATING',waitTime:20,area:'ファンタジーランド'},
+      {id:'t4',name:'プーさんのハニーハント',entityType:'ATTRACTION',status:'OPERATING',waitTime:65,area:'ファンタジーランド'},
+      {id:'t5',name:'モンスターズ・インク',entityType:'ATTRACTION',status:'OPERATING',waitTime:40,area:'トゥモローランド'},
+      {id:'t6',name:'イッツ・ア・スモールワールド',entityType:'ATTRACTION',status:'OPERATING',waitTime:10,area:'ファンタジーランド'},
+      {id:'t7',name:'バズ・ライトイヤー',entityType:'ATTRACTION',status:'OPERATING',waitTime:25,area:'トゥモローランド'},
+      {id:'t8',name:'スター・ツアーズ',entityType:'ATTRACTION',status:'OPERATING',waitTime:30,area:'トゥモローランド'},
+      {id:'t9',name:'カリブの海賊',entityType:'ATTRACTION',status:'OPERATING',waitTime:15,area:'アドベンチャーランド'},
+      {id:'t10',name:'ジャングル・クルーズ',entityType:'ATTRACTION',status:'OPERATING',waitTime:10,area:'アドベンチャーランド'},
+      {id:'t11',name:'ウエスタンリバー鉄道',entityType:'ATTRACTION',status:'CLOSED',waitTime:null,area:'ウエスタンランド'},
+      {id:'t12',name:'ダンボ',entityType:'ATTRACTION',status:'OPERATING',waitTime:40,area:'ファンタジーランド'},
+      {id:'t13',name:'ミッキーのマジカルミュージックワールド',entityType:'SHOW',status:'OPERATING',waitTime:null,area:'ウエスタンランド劇場'},
+      {id:'t14',name:'クリスタルパレス・レストラン',entityType:'RESTAURANT',status:'OPERATING',waitTime:30,area:'ワールドバザール'},
+      {id:'t15',name:'エンポーリアム',entityType:'SHOP',status:'OPERATING',waitTime:null,area:'ワールドバザール'},
+    ],
+    tds:[
+      {id:'s1',name:'ソアリン：ファンタスティック・フライト',entityType:'ATTRACTION',status:'OPERATING',waitTime:90,area:'ファンタジースプリングス'},
+      {id:'s2',name:'センター・オブ・ジ・アース',entityType:'ATTRACTION',status:'OPERATING',waitTime:60,area:'ミステリアスアイランド'},
+      {id:'s3',name:'タワー・オブ・テラー',entityType:'ATTRACTION',status:'OPERATING',waitTime:45,area:'アメリカンウォーターフロント'},
+      {id:'s4',name:'インディ・ジョーンズ™',entityType:'ATTRACTION',status:'OPERATING',waitTime:55,area:'ロストリバーデルタ'},
+      {id:'s5',name:'ニモ＆フレンズ・シーライダー',entityType:'ATTRACTION',status:'OPERATING',waitTime:25,area:'ニモ＆フレンズ'},
+      {id:'s6',name:'シンドバッド・ストーリーブック・ヴォヤッジ',entityType:'ATTRACTION',status:'OPERATING',waitTime:10,area:'アラビアンコースト'},
+      {id:'s7',name:'アクアトピア',entityType:'ATTRACTION',status:'OPERATING',waitTime:10,area:'ポートディスカバリー'},
+      {id:'s8',name:'マジックランプシアター',entityType:'SHOW',status:'OPERATING',waitTime:null,area:'アラビアンコースト'},
+      {id:'s9',name:'海底2万マイル',entityType:'ATTRACTION',status:'OPERATING',waitTime:20,area:'ミステリアスアイランド'},
+      {id:'s10',name:'マイロのホームカミング',entityType:'ATTRACTION',status:'OPERATING',waitTime:80,area:'ファンタジースプリングス'},
+      {id:'s11',name:'ビッグバンドビート',entityType:'SHOW',status:'OPERATING',waitTime:null,area:'アメリカンウォーターフロント'},
+      {id:'s12',name:'ヴォルケイニア・レストラン',entityType:'RESTAURANT',status:'OPERATING',waitTime:15,area:'ミステリアスアイランド'},
+      {id:'s13',name:'ラヴォーグ・ダムール',entityType:'SHOP',status:'OPERATING',waitTime:null,area:'アメリカンウォーターフロント'},
+    ],
+    usj:[
+      {id:'u1',name:'マリオカート～クッパの挑戦状～',entityType:'ATTRACTION',status:'OPERATING',waitTime:80,area:'スーパー・ニンテンドー・ワールド'},
+      {id:'u2',name:'ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー',entityType:'ATTRACTION',status:'OPERATING',waitTime:55,area:'ウィザーディング・ワールド'},
+      {id:'u3',name:'ハリウッド・ドリーム・ザ・ライド',entityType:'ATTRACTION',status:'OPERATING',waitTime:35,area:'ハリウッドエリア'},
+      {id:'u4',name:'ザ・フライング・ダイナソー',entityType:'ATTRACTION',status:'OPERATING',waitTime:60,area:'ジュラシック・パーク'},
+      {id:'u5',name:'ミニオン・ハチャメチャ・ライド',entityType:'ATTRACTION',status:'OPERATING',waitTime:50,area:'ミニオン・パーク'},
+      {id:'u6',name:'スペース・ファンタジー・ザ・ライド',entityType:'ATTRACTION',status:'OPERATING',waitTime:45,area:'ユニバーサル・ワンダーランド'},
+      {id:'u7',name:'ジュラシック・パーク・ザ・ライド',entityType:'ATTRACTION',status:'OPERATING',waitTime:30,area:'ジュラシック・パーク'},
+      {id:'u8',name:'アメージング・アドベンチャー・オブ・スパイダーマン',entityType:'ATTRACTION',status:'OPERATING',waitTime:25,area:'マーベル・エリア'},
+      {id:'u9',name:'フライト・オブ・ザ・ヒッポグリフ™',entityType:'ATTRACTION',status:'OPERATING',waitTime:20,area:'ウィザーディング・ワールド'},
+      {id:'u10',name:'セサミストリート4-D',entityType:'SHOW',status:'OPERATING',waitTime:null,area:'セサミストリート'},
+      {id:'u11',name:'ウォーター・ワールド',entityType:'SHOW',status:'OPERATING',waitTime:null,area:'アウトドアエリア'},
+      {id:'u12',name:'バターベール（三本の箒）',entityType:'RESTAURANT',status:'OPERATING',waitTime:20,area:'ウィザーディング・ワールド'},
+      {id:'u13',name:'オリバンダーの店',entityType:'SHOP',status:'OPERATING',waitTime:null,area:'ウィザーディング・ワールド'},
+      {id:'u14',name:'マリオのミート＆グリート',entityType:'MEET_AND_GREET',status:'OPERATING',waitTime:40,area:'ニンテンドーワールド'},
+    ],
+  };
+  return map[tab]||[];
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+loaded['tdl'] = true;
+initPark('tdl');
+</script>
+</body>
+</html>

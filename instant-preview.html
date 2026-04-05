@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="インスタントAPP">
+  <meta name="theme-color" content="#6366f1">
+  <title>インスタントAPP</title>
+  <style>
+    :root {
+      --indigo: #6366f1;
+      --indigo-dark: #4f46e5;
+      --indigo-light: #e0e7ff;
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --text: #1d1d1f;
+      --text2: #6e6e73;
+      --text3: #aeaeb2;
+      --border: #e5e5ea;
+      --danger: #ff3b30;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #1c1c1e;
+        --text: #f5f5f7;
+        --text2: #aeaeb2;
+        --text3: #636366;
+        --border: #38383a;
+        --indigo-light: #1e1b4b;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, 'Hiragino Sans', BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── App Shell ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding-top: var(--safe-top);
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 10px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .header-logo .icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--indigo), #8b5cf6);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .tab-pills {
+      display: flex;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .tab-pill {
+      padding: 5px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all .18s;
+      background: transparent;
+      color: var(--text2);
+    }
+    .tab-pill.active {
+      background: var(--card);
+      color: var(--indigo);
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+    }
+    .btn-history {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Pages ── */
+    .page { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .page.active { display: flex; }
+
+    /* ── Editor Page ── */
+    .editor-toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-primary {
+      background: var(--indigo);
+      color: white;
+    }
+    .btn-primary:active { background: var(--indigo-dark); transform: scale(.97); }
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:active { opacity: .7; transform: scale(.97); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      margin-left: auto;
+      padding: 8px 10px;
+    }
+    .char-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    .editor-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+    #codeInput {
+      width: 100%;
+      min-height: 200px;
+      height: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #codeInput:focus { border-color: var(--indigo); }
+    #codeInput::placeholder { color: var(--text3); font-family: -apple-system, sans-serif; font-size: 14px; }
+
+    /* ── Run Button (FAB) ── */
+    .fab {
+      position: fixed;
+      bottom: calc(16px + var(--safe-bottom));
+      right: 20px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--indigo), #8b5cf6);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 20px rgba(99,102,241,.45);
+      transition: transform .15s;
+      z-index: 100;
+    }
+    .fab:active { transform: scale(.93); }
+    .fab.hidden { display: none; }
+
+    /* ── Hidden utility ── */
+    .hidden { display: none !important; }
+
+    /* ── Preview Page ── */
+    #previewFrame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: white;
+      display: block;
+    }
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-status {
+      font-size: 12px;
+      color: var(--text3);
+      flex: 1;
+      text-align: center;
+    }
+    .preview-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text3);
+      padding: 40px;
+      text-align: center;
+    }
+    .preview-empty .big-icon { font-size: 56px; }
+    .preview-empty p { font-size: 15px; line-height: 1.5; }
+
+    /* ── History Page ── */
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .history-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text3);
+      text-align: center;
+    }
+    .history-empty .big-icon { font-size: 48px; }
+    .history-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .history-card:active { opacity: .7; }
+    .history-thumb {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: var(--indigo-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .history-info { flex: 1; overflow: hidden; }
+    .history-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .history-meta { font-size: 12px; color: var(--text3); }
+    .history-del {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 18px;
+      padding: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: calc(80px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,.82);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all .25s;
+      z-index: 200;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Install Banner ── */
+    #installBanner {
+      background: linear-gradient(135deg, var(--indigo), #8b5cf6);
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    #installBanner.hidden { display: none; }
+    #installBanner .banner-text { flex: 1; line-height: 1.4; }
+    #installBanner .banner-close {
+      background: rgba(255,255,255,.2);
+      border: none;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Install Banner (shown on first visit if not installed) -->
+  <div id="installBanner" class="hidden">
+    <span style="font-size:20px">📱</span>
+    <div class="banner-text">
+      <strong>ホーム画面に追加</strong>すると<br>アプリのように使えます
+    </div>
+    <button class="banner-close" onclick="dismissBanner()">閉じる</button>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="icon">⚡</div>
+      インスタント
+    </div>
+    <div class="tab-pills">
+      <button class="tab-pill active" id="tabEditor" onclick="switchTab('editor')">コード</button>
+      <button class="tab-pill" id="tabPreview" onclick="switchTab('preview')">プレビュー</button>
+    </div>
+    <button class="btn-history" onclick="switchTab('history')" title="履歴">
+      🕐
+    </button>
+  </div>
+
+  <!-- Editor Page -->
+  <div class="page active" id="pageEditor">
+    <div class="editor-toolbar">
+      <button class="btn btn-primary" onclick="pasteFromClipboard()">📋 貼り付け</button>
+      <button class="btn btn-secondary" onclick="loadSample()">サンプル</button>
+      <span class="char-count" id="charCount">0文字</span>
+      <button class="btn btn-danger" onclick="clearCode()">🗑</button>
+    </div>
+    <div class="editor-wrap">
+      <textarea
+        id="codeInput"
+        placeholder="ここにHTMLコードを貼り付けてください&#10;&#10;使い方：&#10;① ClaudeやChatGPTに「〇〇アプリのHTMLを作って」と頼む&#10;② 生成されたHTMLをコピー&#10;③「貼り付け」ボタンでここに貼る&#10;④ ▶ ボタンでプレビュー！"
+        oninput="onCodeInput()"
+      ></textarea>
+    </div>
+    <button class="fab" id="fabRun" onclick="runPreview()">▶</button>
+  </div>
+
+  <!-- Preview Page -->
+  <div class="page" id="pagePreview">
+    <div class="preview-bar">
+      <button class="btn btn-secondary" style="padding:6px 12px;font-size:13px" onclick="switchTab('editor')">← 編集</button>
+      <span class="preview-status" id="previewStatus">プレビュー</span>
+      <button class="btn btn-secondary" style="padding:6px 12px;font-size:13px" onclick="reloadPreview()">↺ 再読込</button>
+    </div>
+    <div id="previewEmpty" class="preview-empty">
+      <div class="big-icon">🚀</div>
+      <p>コードを貼り付けて<br>▶ ボタンを押してください</p>
+    </div>
+    <iframe id="previewFrame" class="hidden" allow="geolocation" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"></iframe>
+  </div>
+
+  <!-- History Page -->
+  <div class="page" id="pageHistory">
+    <div class="editor-toolbar" style="justify-content:space-between">
+      <span style="font-size:15px;font-weight:700">保存した履歴</span>
+      <button class="btn btn-secondary" style="font-size:13px;padding:6px 12px" onclick="switchTab('editor')">← 戻る</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── State ──
+  let currentTab = 'editor';
+  let currentCode = '';
+
+  // ── Tab Switching ──
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
+
+    if (tab === 'editor') {
+      document.getElementById('pageEditor').classList.add('active');
+      document.getElementById('tabEditor').classList.add('active');
+      document.getElementById('fabRun').classList.remove('hidden');
+    } else if (tab === 'preview') {
+      document.getElementById('pagePreview').classList.add('active');
+      document.getElementById('tabPreview').classList.add('active');
+      document.getElementById('fabRun').classList.add('hidden');
+    } else if (tab === 'history') {
+      document.getElementById('pageHistory').classList.add('active');
+      document.getElementById('fabRun').classList.add('hidden');
+      renderHistory();
+    }
+  }
+
+  // ── Code Input ──
+  function onCodeInput() {
+    const code = document.getElementById('codeInput').value;
+    document.getElementById('charCount').textContent = code.length.toLocaleString() + '文字';
+  }
+
+  // ── Clipboard Paste ──
+  async function pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) { showToast('クリップボードが空です'); return; }
+      document.getElementById('codeInput').value = text;
+      onCodeInput();
+      showToast('✅ 貼り付けました');
+    } catch (e) {
+      // Fallback: focus textarea and show hint
+      document.getElementById('codeInput').focus();
+      showToast('長押し →「ペースト」で貼り付けてください');
+    }
+  }
+
+  // ── Run Preview ──
+  let _lastBlobUrl = null;
+  function runPreview() {
+    const code = document.getElementById('codeInput').value.trim();
+    if (!code) { showToast('コードを入力してください'); return; }
+
+    currentCode = code;
+
+    const frame = document.getElementById('previewFrame');
+    const empty = document.getElementById('previewEmpty');
+    frame.classList.remove('hidden');
+    empty.classList.add('hidden');
+
+    // 古いBlob URLを解放
+    if (_lastBlobUrl) { URL.revokeObjectURL(_lastBlobUrl); _lastBlobUrl = null; }
+
+    // Write HTML to iframe via Blob URL
+    const blob = new Blob([code], { type: 'text/html; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    _lastBlobUrl = url;
+    frame.src = url;
+
+    // Update status
+    const title = extractTitle(code);
+    document.getElementById('previewStatus').textContent = title || 'プレビュー中';
+
+    // Save to history
+    saveToHistory(code, title);
+
+    switchTab('preview');
+    showToast('▶ 実行しました');
+  }
+
+  function reloadPreview() {
+    if (currentCode) runPreview();
+  }
+
+  function extractTitle(html) {
+    const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    return m ? m[1].trim() : null;
+  }
+
+  // ── Clear ──
+  function clearCode() {
+    if (!document.getElementById('codeInput').value) return;
+    if (confirm('コードを削除しますか？')) {
+      document.getElementById('codeInput').value = '';
+      onCodeInput();
+      showToast('🗑 クリアしました');
+    }
+  }
+
+  // ── Sample ──
+  function loadSample() {
+    const sample = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サンプル：シンプル電卓</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #1c1c1e; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .calc { background: #2c2c2e; border-radius: 24px; padding: 24px; width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .display { background: #000; border-radius: 16px; padding: 20px 16px 12px; margin-bottom: 16px; text-align: right; }
+  .expr { color: #636366; font-size: 16px; min-height: 20px; margin-bottom: 4px; }
+  .result { color: white; font-size: 44px; font-weight: 300; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  button { height: 72px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer; transition: opacity .1s; }
+  button:active { opacity: .7; }
+  .btn-func { background: #636366; color: white; }
+  .btn-op { background: #ff9f0a; color: white; }
+  .btn-num { background: #3a3a3c; color: white; }
+  .btn-zero { border-radius: 36px; grid-column: span 2; text-align: left; padding-left: 26px; }
+  .btn-clear { background: #ff453a; color: white; }
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="display">
+    <div class="expr" id="expr"></div>
+    <div class="result" id="result">0</div>
+  </div>
+  <div class="buttons">
+    <button class="btn-clear" onclick="ac()">AC</button>
+    <button class="btn-func" onclick="toggleSign()">+/-</button>
+    <button class="btn-func" onclick="percent()">%</button>
+    <button class="btn-op" onclick="op('/')">÷</button>
+    <button class="btn-num" onclick="num('7')">7</button>
+    <button class="btn-num" onclick="num('8')">8</button>
+    <button class="btn-num" onclick="num('9')">9</button>
+    <button class="btn-op" onclick="op('*')">×</button>
+    <button class="btn-num" onclick="num('4')">4</button>
+    <button class="btn-num" onclick="num('5')">5</button>
+    <button class="btn-num" onclick="num('6')">6</button>
+    <button class="btn-op" onclick="op('-')">−</button>
+    <button class="btn-num" onclick="num('1')">1</button>
+    <button class="btn-num" onclick="num('2')">2</button>
+    <button class="btn-num" onclick="num('3')">3</button>
+    <button class="btn-op" onclick="op('+')">+</button>
+    <button class="btn-num btn-zero" onclick="num('0')">0</button>
+    <button class="btn-num" onclick="dot()">.</button>
+    <button class="btn-op" onclick="eq()">=</button>
+  </div>
+</div>
+<script>
+let cur='0', prev='', operator='', fresh=false;
+const R=()=>document.getElementById('result').textContent=cur;
+const E=()=>document.getElementById('expr').textContent=prev+(operator?{'/':'÷','*':'×','-':'−','+':'+'}[operator]||operator:'');
+function num(n){if(cur==='0'||fresh){cur=n;fresh=false;}else cur+=n;R();}
+function dot(){if(fresh){cur='0.';fresh=false;}else if(!cur.includes('.'))cur+='.';R();}
+function ac(){cur='0';prev='';operator='';fresh=false;R();E();}
+function op(o){if(operator&&!fresh)eq();prev=cur;operator=o;fresh=true;E();}
+function eq(){if(!operator)return;const a=parseFloat(prev),b=parseFloat(cur);const ops={'+':a+b,'-':a-b,'*':a*b,'/':a/b};const r=ops[operator];cur=parseFloat(r.toFixed(10)).toString();prev='';operator='';fresh=true;R();E();}
+function toggleSign(){cur=(parseFloat(cur)*-1).toString();R();}
+function percent(){cur=(parseFloat(cur)/100).toString();R();}
+<\/script>
+</body>
+</html>`;
+    document.getElementById('codeInput').value = sample;
+    onCodeInput();
+    showToast('📱 サンプルを読み込みました');
+  }
+
+  // ── History (localStorage) ──
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('ia_history') || '[]'); } catch { return []; }
+  }
+  function saveToHistory(code, title) {
+    const history = getHistory().filter(h => h.code !== code).slice(0, 19);
+    history.unshift({
+      id: Date.now(),
+      title: title || '無題のアプリ',
+      code,
+      date: new Date().toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      size: code.length
+    });
+    localStorage.setItem('ia_history', JSON.stringify(history));
+  }
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const history = getHistory();
+    if (!history.length) {
+      list.innerHTML = '<div class="history-empty"><div class="big-icon">📂</div><p>履歴はまだありません<br>アプリを実行すると<br>ここに表示されます</p></div>';
+      return;
+    }
+    const emojis = ['🚀','🎮','📝','🧮','⏱','🎨','📊','🎵','🌐','💡'];
+    list.innerHTML = history.map((h, i) => `
+      <div class="history-card" onclick="loadHistory(${h.id})">
+        <div class="history-thumb">${emojis[i % emojis.length]}</div>
+        <div class="history-info">
+          <div class="history-title">${escHtml(h.title)}</div>
+          <div class="history-meta">${h.date} · ${h.size.toLocaleString()}文字</div>
+        </div>
+        <button class="history-del" onclick="event.stopPropagation();deleteHistory(${h.id})">✕</button>
+      </div>
+    `).join('');
+  }
+  function loadHistory(id) {
+    const item = getHistory().find(h => h.id === id);
+    if (!item) return;
+    document.getElementById('codeInput').value = item.code;
+    onCodeInput();
+    currentCode = item.code;
+    switchTab('editor');
+    showToast('📂 読み込みました');
+  }
+  function deleteHistory(id) {
+    const history = getHistory().filter(h => h.id !== id);
+    localStorage.setItem('ia_history', JSON.stringify(history));
+    renderHistory();
+  }
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Toast ──
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── Install Banner ──
+  function dismissBanner() {
+    document.getElementById('installBanner').classList.add('hidden');
+    localStorage.setItem('ia_banner_dismissed', '1');
+  }
+  function checkInstallBanner() {
+    const isStandalone = window.navigator.standalone;
+    const dismissed = localStorage.getItem('ia_banner_dismissed');
+    if (!isStandalone && !dismissed) {
+      // Show banner after short delay
+      setTimeout(() => {
+        document.getElementById('installBanner').classList.remove('hidden');
+      }, 1500);
+    }
+  }
+
+  // ── Init ──
+  checkInstallBanner();
+  onCodeInput();
+</script>
+</body>
+</html>
